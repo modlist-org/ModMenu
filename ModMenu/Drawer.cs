@@ -41,7 +41,6 @@ namespace ModMenu {
         public static Texture2D? Icon_Discord;
         public static Texture2D? Icon_Github;
         public static Texture2D? Icon_X;
-        public static Texture2D? Logo;
 
         public static GUIStyle? myButton;
         public static GUIStyle? myTextField;
@@ -50,7 +49,6 @@ namespace ModMenu {
         public static GUIStyle? tabButton;
         public static GUIStyle? tabButtonActive;
         public static GUIStyle? headerStyle;
-        public static GUIStyle? sloganStyle;
         public static GUIStyle? badgeStyle;
 
         public static string? CurrentTooltip;
@@ -76,7 +74,6 @@ namespace ModMenu {
             Icon_Discord = ResourceManager.LoadTexture("discord.png");
             Icon_Github = ResourceManager.LoadTexture("github.png");
             Icon_X = ResourceManager.LoadTexture("x.png");
-            Logo = ResourceManager.LoadTexture("logo.png");
 
             // Overlayer v3 custom styles
             myButton = new(GUI.skin.button) {
@@ -109,7 +106,7 @@ namespace ModMenu {
 
             tabButton = new(myButton) {
                 fontSize = 13,
-                fixedHeight = 28
+                fixedHeight = 26
             };
 
             tabButtonActive = new(tabButton) {
@@ -117,15 +114,9 @@ namespace ModMenu {
             };
 
             headerStyle = new(GUI.skin.label) {
-                fontSize = 22,
+                fontSize = 18,
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = Color.white },
-                alignment = TextAnchor.MiddleLeft
-            };
-
-            sloganStyle = new(GUI.skin.label) {
-                fontSize = 12,
-                normal = { textColor = new(0.72f, 0.72f, 0.72f) },
                 alignment = TextAnchor.MiddleLeft
             };
 

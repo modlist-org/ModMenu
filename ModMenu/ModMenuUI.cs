@@ -86,30 +86,16 @@ namespace ModMenu {
         private void DrawHeader() {
             GUILayout.BeginHorizontal();
 
-            // Logo
-            if (Drawer.Logo is not null) {
-                GUILayout.Label(Drawer.Logo, GUILayout.Width(54), GUILayout.Height(54));
-                GUILayout.Space(8);
-            }
-
-            // Title & Slogan
-            GUILayout.BeginVertical();
-            GUILayout.Label("<size=22><b>ModMenu</b></size>", Drawer.headerStyle);
-            GUILayout.Label("<size=12><color=#a0a0a0>A MelonLoader plugin for porting UnityModManager (UMM) mods</color></size>", Drawer.sloganStyle);
-            GUILayout.Label("<size=11><color=#707070>v1.0.0 by </color><color=#4CAF50>modlist.org</color></size>", Drawer.sloganStyle);
-            GUILayout.EndVertical();
+            GUILayout.Label("<b>Mod Menu</b>", Drawer.headerStyle, GUILayout.ExpandWidth(false));
 
             GUILayout.FlexibleSpace();
 
-            // Tabs
-            GUILayout.BeginHorizontal();
             for (int i = 0; i < _tabs.Length; i++) {
                 var style = _tabId == i ? Drawer.tabButtonActive : Drawer.tabButton;
-                if (GUILayout.Button(_tabs[i], style, GUILayout.Width(90), GUILayout.Height(30))) {
+                if (GUILayout.Button(_tabs[i], style, GUILayout.Width(80), GUILayout.Height(26))) {
                     _tabId = i;
                 }
             }
-            GUILayout.EndHorizontal();
 
             GUILayout.EndHorizontal();
         }
@@ -240,13 +226,11 @@ namespace ModMenu {
 
         private void DrawSettingsTab() {
             GUILayout.BeginVertical(Drawer.boxStyle);
-            GUILayout.Label("<b>ModMenu Information</b>", Drawer.headerStyle);
+            GUILayout.Label("<b>Settings</b>", Drawer.headerStyle);
             GUILayout.Space(8);
-            GUILayout.Label("A lightweight compatibility layer for running UnityModManager (UMM) mods in MelonLoader.");
-            GUILayout.Space(4);
-            GUILayout.Label("• Shortcut: <b>Ctrl + F9</b> opens/closes this menu.");
-            GUILayout.Label("• Pressing <b>Escape</b> closes the menu when open.");
-            GUILayout.Label($"• Currently Registered Mods: <b>{ModMenuApi.Mods.Count}</b>");
+            GUILayout.Label("• Shortcut: <b>Ctrl + F9</b> to toggle this menu.");
+            GUILayout.Label("• Press <b>Escape</b> to close.");
+            GUILayout.Label($"• Registered Mods: <b>{ModMenuApi.Mods.Count}</b>");
             GUILayout.Space(14);
 
             if (Drawer.Button("Reset Window Position", GUILayout.Width(180), GUILayout.Height(26))) {
