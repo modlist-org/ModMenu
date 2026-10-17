@@ -1,12 +1,23 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace ModMenu {
+    [Serializable]
+    public class ModMenuSettings {
+        public KeyCode ToggleKey = KeyCode.F9;
+        public bool RequireCtrl = true;
+        public bool RequireAlt = false;
+        public bool RequireShift = false;
+    }
+
     public class ModMenuUI : MonoBehaviour {
         public static ModMenuUI? Instance { get; private set; }
         public static bool IsOpen { get; private set; }
 
+        private ModMenuSettings _settings = new();
+        private bool _isBindingKey = false;
         private Rect _windowRect = new(100, 100, 850, 620);
         private Vector2 _scrollPos = Vector2.zero;
         private string _filter = string.Empty;
@@ -17,6 +28,7 @@ namespace ModMenu {
         private void Awake() {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            LoadSettings();
             CenterWindow();
         }
 
@@ -30,9 +42,26 @@ namespace ModMenu {
             IsOpen = !IsOpen;
         }
 
+        public string GetShortcutString() {
+            List<string> parts = [];
+            if (_settings.RequireCtrl) parts.Add("Ctrl");
+            if (_settings.RequireAlt) parts.Add("Alt");
+            if (_settings.RequireShift) parts.Add("Shift");
+            parts.Add(_settings.ToggleKey.ToString());
+            return string.Join(" + ", parts);
+        }
+
         private void Update() {
+            if (_isBindingKey) return;
+
             bool ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
-            if (ctrl && Input.GetKeyDown(KeyCode.F9)) {
+            bool alt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+            bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+
+            if (ctrl == _settings.RequireCtrl &&
+                alt == _settings.RequireAlt &&
+                shift == _settings.RequireShift &&
+                Input.GetKeyDown(_settings.ToggleKey)) {
                 Toggle();
             }
 
@@ -51,26 +80,54 @@ namespace ModMenu {
 
             Drawer.Initialize();
 
+            if (_isBindingKey) {
+                Event e = Event.current;
+                if (e.isKey && e.type == EventType.KeyDown) {
+                    if (e.keyCode == KeyCode.Escape) {
+                        _isBindingKey = false;
+                        e.Use();
+                    } else if (e.keyCode != KeyCode.None &&
+                               e.keyCode != KeyCode.LeftControl && e.keyCode != KeyCode.RightControl &&
+                               e.keyCode != KeyCode.LeftAlt && e.keyCode != KeyCode.RightAlt &&
+                               e.keyCode != KeyCode.LeftShift && e.keyCode != KeyCode.RightShift) {
+                        _settings.ToggleKey = e.keyCode;
+                        _settings.RequireCtrl = e.control;
+                        _settings.RequireAlt = e.alt;
+                        _settings.RequireShift = e.shift;
+                        _isBindingKey = false;
+                        SaveSettings();
+                        e.Use();
+                    }
+                }
+            }
+
             if (Drawer.dimTexture is not null) {
                 GUI.DrawTexture(new(0, 0, Screen.width, Screen.height), Drawer.dimTexture);
             }
 
-            _windowRect = GUILayout.Window(
-                999901,
-                _windowRect,
-                DrawWindowContent,
-                "",
-                Drawer.darkWindow!,
-                GUILayout.Width(_windowRect.width),
-                GUILayout.Height(_windowRect.height)
-            );
+            var oldSkin = GUI.skin;
+            if (Drawer.customSkin is not null) {
+                GUI.skin = Drawer.customSkin;
+            }
 
-            Drawer.RenderTooltip();
+            try {
+                _windowRect = GUILayout.Window(
+                    999901,
+                    _windowRect,
+                    DrawWindowContent,
+                    "",
+                    Drawer.darkWindow!,
+                    GUILayout.Width(_windowRect.width),
+                    GUILayout.Height(_windowRect.height)
+                );
+
+                Drawer.RenderTooltip();
+            } finally {
+                GUI.skin = oldSkin;
+            }
         }
 
         private void DrawWindowContent(int windowId) {
-            GUI.DragWindow(new(0, 0, 10000, 75));
-
             DrawHeader();
 
             GUILayout.Space(8);
@@ -85,6 +142,9 @@ namespace ModMenu {
             GUILayout.Space(6);
 
             DrawFooter();
+
+            // Drag window from title area only (leaves tabs clickable on the right)
+            GUI.DragWindow(new(0, 0, Mathf.Max(0, _windowRect.width - 220), 45));
         }
 
         private void DrawHeader() {
@@ -133,7 +193,14 @@ namespace ModMenu {
 
             // Mod items list
             var mods = ModMenuApi.Mods;
-            _scrollPos = GUILayout.BeginScrollView(_scrollPos, false, true, GUILayout.ExpandHeight(true));
+            _scrollPos = GUILayout.BeginScrollView(
+                _scrollPos,
+                false,
+                true,
+                GUIStyle.none,
+                Drawer.verticalScrollbar!,
+                GUILayout.ExpandHeight(true)
+            );
 
             if (mods.Count == 0) {
                 GUILayout.Space(20);
@@ -230,16 +297,74 @@ namespace ModMenu {
 
         private void DrawSettingsTab() {
             GUILayout.BeginVertical(Drawer.boxStyle);
-            GUILayout.Label("<b>Settings</b>", Drawer.headerStyle);
-            GUILayout.Space(8);
-            GUILayout.Label("• Shortcut: <b>Ctrl + F9</b> to toggle this menu.");
-            GUILayout.Label("• Press <b>Escape</b> to close.");
-            GUILayout.Label($"• Registered Mods: <b>{ModMenuApi.Mods.Count}</b>");
-            GUILayout.Space(14);
 
-            if (Drawer.Button("Reset Window Position", GUILayout.Width(180), GUILayout.Height(26))) {
+            GUILayout.Label("<b>Menu Settings</b>", Drawer.headerStyle);
+            GUILayout.Space(10);
+
+            // Toggle Hotkey section
+            GUILayout.Label("<b>Toggle Menu Shortcut:</b>");
+            GUILayout.Space(4);
+
+            GUILayout.BeginHorizontal();
+
+            string keyText = _isBindingKey ? "Press any key... (Esc to cancel)" : $"Key: {GetShortcutString()}";
+            GUIStyle bindBtnStyle = _isBindingKey ? Drawer.tabButtonActive! : Drawer.myButton!;
+
+            if (GUILayout.Button(keyText, bindBtnStyle, GUILayout.Width(240), GUILayout.Height(30))) {
+                _isBindingKey = !_isBindingKey;
+            }
+
+            if (!_isBindingKey) {
+                GUILayout.Space(8);
+                if (Drawer.Button("Reset Default", GUILayout.Width(110), GUILayout.Height(30))) {
+                    _settings.ToggleKey = KeyCode.F9;
+                    _settings.RequireCtrl = true;
+                    _settings.RequireAlt = false;
+                    _settings.RequireShift = false;
+                    SaveSettings();
+                }
+            }
+
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(8);
+
+            if (!_isBindingKey) {
+                GUILayout.BeginHorizontal();
+                if (Drawer.DrawBool("Require Ctrl", ref _settings.RequireCtrl)) {
+                    SaveSettings();
+                }
+                GUILayout.Space(16);
+                if (Drawer.DrawBool("Require Alt", ref _settings.RequireAlt)) {
+                    SaveSettings();
+                }
+                GUILayout.Space(16);
+                if (Drawer.DrawBool("Require Shift", ref _settings.RequireShift)) {
+                    SaveSettings();
+                }
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+            } else {
+                GUILayout.Label("<color=#FFCC00>Press any key (with Ctrl / Alt / Shift if desired) to bind, or Esc to cancel.</color>");
+            }
+
+            GUILayout.Space(16);
+
+            // Window position
+            GUILayout.Label("<b>Window:</b>");
+            GUILayout.Space(4);
+            if (Drawer.Button("Reset Window Position", GUILayout.Width(180), GUILayout.Height(28))) {
                 CenterWindow();
             }
+
+            GUILayout.Space(16);
+
+            // Info
+            GUILayout.Label("<b>Information:</b>");
+            GUILayout.Space(4);
+            GUILayout.Label($"• Registered Mods: <b>{ModMenuApi.Mods.Count}</b>");
+            GUILayout.Label("• Press <b>Escape</b> to close the menu.");
 
             GUILayout.EndVertical();
         }
@@ -254,28 +379,45 @@ namespace ModMenu {
             GUILayout.Space(6);
 
             if (Drawer.Button("Save Settings", GUILayout.Width(120), GUILayout.Height(26))) {
+                SaveSettings();
                 SaveAllMods();
             }
 
             GUILayout.FlexibleSpace();
 
-            // Discord & GitHub links (Overlayer v3 style)
-            if (Drawer.Button(Drawer.Icon_Discord, " Discord", GUILayout.Height(26))) {
-                Application.OpenURL("https://discord.modlist.org/");
-            }
-            Drawer.HoverTooltip("Join the modlist.org Discord community");
-
-            GUILayout.Space(4);
-
-            if (Drawer.Button(Drawer.Icon_Github, " GitHub", GUILayout.Height(26))) {
-                Application.OpenURL("https://github.com/modlist-org/ModMenu");
-            }
-            Drawer.HoverTooltip("Open ModMenu GitHub repository");
-
-            GUILayout.Space(8);
-            GUILayout.Label("<color=#777777>Ctrl + F9</color>");
+            GUILayout.Label($"<color=#777777>{GetShortcutString()}</color>");
 
             GUILayout.EndHorizontal();
+        }
+
+        private void LoadSettings() {
+            try {
+                string dir = Path.Combine(Directory.GetCurrentDirectory(), "UserData");
+                string file = Path.Combine(dir, "ModMenu.json");
+                if (File.Exists(file)) {
+                    string json = File.ReadAllText(file);
+                    var loaded = JsonUtility.FromJson<ModMenuSettings>(json);
+                    if (loaded is not null) {
+                        _settings = loaded;
+                    }
+                }
+            } catch (Exception ex) {
+                Debug.LogWarning($"[ModMenu] Failed to load settings: {ex.Message}");
+            }
+        }
+
+        private void SaveSettings() {
+            try {
+                string dir = Path.Combine(Directory.GetCurrentDirectory(), "UserData");
+                if (!Directory.Exists(dir)) {
+                    Directory.CreateDirectory(dir);
+                }
+                string file = Path.Combine(dir, "ModMenu.json");
+                string json = JsonUtility.ToJson(_settings, true);
+                File.WriteAllText(file, json);
+            } catch (Exception ex) {
+                Debug.LogWarning($"[ModMenu] Failed to save settings: {ex.Message}");
+            }
         }
 
         private void SaveAllMods() {

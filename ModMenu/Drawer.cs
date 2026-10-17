@@ -39,9 +39,11 @@ namespace ModMenu {
 
         public static Texture2D? Icon_Active;
         public static Texture2D? Icon_Inactive;
-        public static Texture2D? Icon_Discord;
-        public static Texture2D? Icon_Github;
         public static Texture2D? Icon_X;
+
+        public static Texture2D? scrollTrack;
+        public static Texture2D? scrollThumb;
+        public static Texture2D? scrollThumbHover;
 
         public static GUIStyle? myButton;
         public static GUIStyle? myTextField;
@@ -51,6 +53,9 @@ namespace ModMenu {
         public static GUIStyle? tabButtonActive;
         public static GUIStyle? headerStyle;
         public static GUIStyle? badgeStyle;
+        public static GUIStyle? verticalScrollbar;
+        public static GUIStyle? verticalScrollbarThumb;
+        public static GUISkin? customSkin;
 
         public static string? CurrentTooltip;
         private static bool _isInited = false;
@@ -73,9 +78,25 @@ namespace ModMenu {
 
             Icon_Active = ResourceManager.LoadTexture("active.png");
             Icon_Inactive = ResourceManager.LoadTexture("inactive.png");
-            Icon_Discord = ResourceManager.LoadTexture("discord.png");
-            Icon_Github = ResourceManager.LoadTexture("github.png");
             Icon_X = ResourceManager.LoadTexture("x.png");
+
+            // Scrollbar textures and styles (dark flat theme)
+            scrollTrack = CreateColorTexture(new(0.08f, 0.08f, 0.08f, 0.7f));
+            scrollThumb = CreateColorTexture(new(0.32f, 0.32f, 0.32f, 0.9f));
+            scrollThumbHover = CreateColorTexture(new(0.48f, 0.48f, 0.48f, 1f));
+
+            verticalScrollbar = new(GUI.skin.verticalScrollbar) {
+                normal = { background = scrollTrack },
+                fixedWidth = 8,
+                margin = new(2, 2, 0, 0)
+            };
+
+            verticalScrollbarThumb = new(GUI.skin.verticalScrollbarThumb) {
+                normal = { background = scrollThumb },
+                hover = { background = scrollThumbHover },
+                active = { background = scrollThumbHover },
+                fixedWidth = 8
+            };
 
             // Overlayer v3 custom styles
             myButton = new(GUI.skin.button) {
@@ -127,6 +148,29 @@ namespace ModMenu {
                 fontSize = 11,
                 padding = new(6, 6, 2, 2)
             };
+
+            customSkin = UnityEngine.Object.Instantiate(GUI.skin);
+            customSkin.window = darkWindow;
+            customSkin.button = myButton;
+            customSkin.textField = myTextField;
+            customSkin.box = boxStyle;
+            customSkin.verticalScrollbar = verticalScrollbar;
+            customSkin.verticalScrollbarThumb = verticalScrollbarThumb;
+            customSkin.verticalScrollbarUpButton = GUIStyle.none;
+            customSkin.verticalScrollbarDownButton = GUIStyle.none;
+            customSkin.horizontalScrollbar = new(GUI.skin.horizontalScrollbar) {
+                normal = { background = scrollTrack },
+                fixedHeight = 8,
+                margin = new(0, 0, 2, 2)
+            };
+            customSkin.horizontalScrollbarThumb = new(GUI.skin.horizontalScrollbarThumb) {
+                normal = { background = scrollThumb },
+                hover = { background = scrollThumbHover },
+                active = { background = scrollThumbHover },
+                fixedHeight = 8
+            };
+            customSkin.horizontalScrollbarLeftButton = GUIStyle.none;
+            customSkin.horizontalScrollbarRightButton = GUIStyle.none;
 
             _isInited = true;
         }

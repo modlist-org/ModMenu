@@ -40,6 +40,7 @@
         <Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.InputLegacyModule.dll</HintPath></Reference>
         <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.TextRenderingModule.dll</HintPath></Reference>
         <Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.ImageConversionModule.dll</HintPath></Reference>
+        <Reference Include="UnityEngine.JSONSerializeModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.JSONSerializeModule.dll</HintPath></Reference>
         <Reference Include="UnityEngine.UI"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.UI.dll</HintPath></Reference>
     </ItemGroup>
 
