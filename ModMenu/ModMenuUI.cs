@@ -7,25 +7,12 @@ namespace ModMenu {
         public static ModMenuUI? Instance { get; private set; }
         public static bool IsOpen { get; private set; }
 
-        private Rect _windowRect = new(100, 100, 800, 600);
+        private Rect _windowRect = new(100, 100, 850, 620);
         private Vector2 _scrollPos = Vector2.zero;
         private string _filter = string.Empty;
         private int _tabId = 0;
         private readonly string[] _tabs = ["Mods", "Settings"];
         private readonly HashSet<string> _expandedMods = [];
-
-        private GUIStyle? _winStyle;
-        private GUIStyle? _headerStyle;
-        private GUIStyle? _btnStyle;
-        private GUIStyle? _btnActiveStyle;
-        private GUIStyle? _btnInactiveStyle;
-        private GUIStyle? _boxStyle;
-        private GUIStyle? _tabBtnStyle;
-        private Texture2D? _winBgTex;
-        private Texture2D? _boxBgTex;
-        private Texture2D? _btnBgTex;
-        private Texture2D? _btnActiveBgTex;
-        private Texture2D? _btnInactiveBgTex;
 
         private void Awake() {
             Instance = this;
@@ -34,8 +21,8 @@ namespace ModMenu {
         }
 
         private void CenterWindow() {
-            float w = Mathf.Min(800, Screen.width - 40);
-            float h = Mathf.Min(600, Screen.height - 40);
+            float w = Mathf.Min(850, Screen.width - 40);
+            float h = Mathf.Min(620, Screen.height - 40);
             _windowRect = new((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h);
         }
 
@@ -59,100 +46,30 @@ namespace ModMenu {
             }
         }
 
-        private Texture2D MakeTex(int width, int height, Color col) {
-            Color[] pix = new Color[width * height];
-            for (int i = 0; i < pix.Length; ++i)
-                pix[i] = col;
-            Texture2D result = new(width, height);
-            result.SetPixels(pix);
-            result.Apply();
-            return result;
-        }
-
-        private void InitStyles() {
-            if (_winStyle is not null) return;
-
-            _winBgTex = MakeTex(2, 2, new(0.12f, 0.12f, 0.12f, 0.96f));
-            _boxBgTex = MakeTex(2, 2, new(0.18f, 0.18f, 0.18f, 0.90f));
-            _btnBgTex = MakeTex(2, 2, new(0.28f, 0.28f, 0.28f, 1f));
-            _btnActiveBgTex = MakeTex(2, 2, new(0.15f, 0.55f, 0.25f, 1f));
-            _btnInactiveBgTex = MakeTex(2, 2, new(0.45f, 0.2f, 0.2f, 1f));
-
-            _winStyle = new(GUI.skin.window) {
-                normal = { background = _winBgTex, textColor = Color.white },
-                onNormal = { background = _winBgTex, textColor = Color.white }
-            };
-
-            _headerStyle = new(GUI.skin.label) {
-                fontSize = 16,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = new(0.9f, 0.9f, 0.9f) },
-                alignment = TextAnchor.MiddleLeft
-            };
-
-            _btnStyle = new(GUI.skin.button) {
-                normal = { background = _btnBgTex, textColor = Color.white },
-                hover = { background = _btnBgTex, textColor = Color.yellow },
-                fontSize = 12
-            };
-
-            _tabBtnStyle = new(_btnStyle) {
-                fontSize = 13,
-                fixedHeight = 26
-            };
-
-            _btnActiveStyle = new(GUI.skin.button) {
-                normal = { background = _btnActiveBgTex, textColor = Color.white },
-                fontSize = 11,
-                fontStyle = FontStyle.Bold
-            };
-
-            _btnInactiveStyle = new(GUI.skin.button) {
-                normal = { background = _btnInactiveBgTex, textColor = Color.white },
-                fontSize = 11,
-                fontStyle = FontStyle.Bold
-            };
-
-            _boxStyle = new(GUI.skin.box) {
-                normal = { background = _boxBgTex, textColor = Color.white }
-            };
-        }
-
         private void OnGUI() {
             if (!IsOpen) return;
 
-            InitStyles();
+            Drawer.Initialize();
 
             _windowRect = GUILayout.Window(
                 999901,
                 _windowRect,
                 DrawWindowContent,
-                "Mod Menu (Ctrl + F9)",
-                _winStyle!,
+                "",
+                Drawer.darkWindow!,
                 GUILayout.Width(_windowRect.width),
                 GUILayout.Height(_windowRect.height)
             );
+
+            Drawer.RenderTooltip();
         }
 
         private void DrawWindowContent(int windowId) {
-            GUI.DragWindow(new(0, 0, 10000, 24));
+            GUI.DragWindow(new(0, 0, 10000, 75));
 
-            GUILayout.BeginHorizontal();
-            int newTab = GUILayout.Toolbar(_tabId, _tabs, _tabBtnStyle, GUILayout.Width(220));
-            if (newTab != _tabId) _tabId = newTab;
+            DrawHeader();
 
-            GUILayout.FlexibleSpace();
-
-            if (_tabId == 0) {
-                GUILayout.Label("Filter:", GUILayout.ExpandWidth(false));
-                _filter = GUILayout.TextField(_filter, GUILayout.Width(140));
-                if (GUILayout.Button("X", _btnStyle, GUILayout.Width(24))) {
-                    _filter = string.Empty;
-                }
-            }
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(6);
+            GUILayout.Space(8);
 
             if (_tabId == 0) {
                 DrawModsTab();
@@ -163,36 +80,73 @@ namespace ModMenu {
             GUILayout.FlexibleSpace();
             GUILayout.Space(6);
 
-            // Bottom bar
+            DrawFooter();
+        }
+
+        private void DrawHeader() {
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Close (Esc)", _btnStyle, GUILayout.Width(100))) {
-                IsOpen = false;
+
+            // Logo
+            if (Drawer.Logo is not null) {
+                GUILayout.Label(Drawer.Logo, GUILayout.Width(54), GUILayout.Height(54));
+                GUILayout.Space(8);
             }
 
-            if (GUILayout.Button("Save Settings", _btnStyle, GUILayout.Width(120))) {
-                SaveAllMods();
-            }
+            // Title & Slogan
+            GUILayout.BeginVertical();
+            GUILayout.Label("<size=22><b>ModMenu</b></size>", Drawer.headerStyle);
+            GUILayout.Label("<size=12><color=#a0a0a0>A MelonLoader plugin for porting UnityModManager (UMM) mods</color></size>", Drawer.sloganStyle);
+            GUILayout.Label("<size=11><color=#707070>v1.0.0 by </color><color=#4CAF50>modlist.org</color></size>", Drawer.sloganStyle);
+            GUILayout.EndVertical();
 
             GUILayout.FlexibleSpace();
-            GUILayout.Label("<color=#888888>Press Ctrl+F9 to toggle menu</color>");
+
+            // Tabs
+            GUILayout.BeginHorizontal();
+            for (int i = 0; i < _tabs.Length; i++) {
+                var style = _tabId == i ? Drawer.tabButtonActive : Drawer.tabButton;
+                if (GUILayout.Button(_tabs[i], style, GUILayout.Width(90), GUILayout.Height(30))) {
+                    _tabId = i;
+                }
+            }
+            GUILayout.EndHorizontal();
+
             GUILayout.EndHorizontal();
         }
 
         private void DrawModsTab() {
-            var mods = ModMenuApi.Mods;
+            // Search / Filter bar
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Filter:", GUILayout.ExpandWidth(false));
+            _filter = GUILayout.TextField(_filter, Drawer.myTextField, GUILayout.Width(180));
+            if (!string.IsNullOrEmpty(_filter)) {
+                if (Drawer.Button(Drawer.Icon_X, GUILayout.Width(24), GUILayout.Height(24))) {
+                    _filter = string.Empty;
+                }
+                Drawer.HoverTooltip("Clear filter");
+            }
+            GUILayout.FlexibleSpace();
+            GUILayout.Label($"<color=#888888>Loaded: {ModMenuApi.Mods.Count} mods</color>");
+            GUILayout.EndHorizontal();
 
-            _scrollPos = GUILayout.BeginScrollView(_scrollPos, false, true, GUILayout.ExpandHeight(true));
+            GUILayout.Space(6);
 
-            GUILayout.BeginHorizontal(_boxStyle);
-            GUILayout.Label("<b>Mod Name</b>", GUILayout.Width(220));
-            GUILayout.Label("<b>Version</b>", GUILayout.Width(70));
-            GUILayout.Label("<b>Status</b>", GUILayout.Width(65));
+            // Table Header
+            GUILayout.BeginHorizontal(Drawer.boxStyle);
+            GUILayout.Space(26);
+            GUILayout.Label("<b>Mod Name</b>", GUILayout.Width(230));
+            GUILayout.Label("<b>Version</b>", GUILayout.Width(75));
+            GUILayout.Label("<b>Status</b>", GUILayout.Width(60));
             GUILayout.Label("<b>Settings</b>", GUILayout.Width(75));
             GUILayout.Label("<b>Author</b>", GUILayout.ExpandWidth(true));
             GUILayout.EndHorizontal();
 
+            // Mod items list
+            var mods = ModMenuApi.Mods;
+            _scrollPos = GUILayout.BeginScrollView(_scrollPos, false, true, GUILayout.ExpandHeight(true));
+
             if (mods.Count == 0) {
-                GUILayout.Space(10);
+                GUILayout.Space(20);
                 GUILayout.Label("  No mods registered with ModMenu yet.", GUI.skin.label);
             }
 
@@ -208,43 +162,57 @@ namespace ModMenu {
 
                 bool isExpanded = _expandedMods.Contains(mod.Id);
 
-                GUILayout.BeginVertical(_boxStyle);
+                GUILayout.BeginVertical(Drawer.boxStyle);
                 GUILayout.BeginHorizontal();
 
-                string nameTitle = string.IsNullOrEmpty(mod.DisplayName) ? mod.Id : mod.DisplayName;
-                if (GUILayout.Button(nameTitle, GUI.skin.label, GUILayout.Width(220))) {
+                // Expand button
+                string arrow = isExpanded ? "▼" : "►";
+                if (Drawer.Button(arrow, GUILayout.Width(24), GUILayout.Height(22))) {
                     ToggleExpand(mod.Id);
                 }
 
-                GUILayout.Label(mod.Version, GUILayout.Width(70));
+                // Name
+                string nameTitle = string.IsNullOrEmpty(mod.DisplayName) ? mod.Id : mod.DisplayName;
+                if (GUILayout.Button($"<b>{nameTitle}</b>", GUI.skin.label, GUILayout.Width(230))) {
+                    ToggleExpand(mod.Id);
+                }
 
-                string statusText = mod.Enabled ? "ON" : "OFF";
-                var statusStyle = mod.Enabled ? _btnActiveStyle : _btnInactiveStyle;
-                if (GUILayout.Button(statusText, statusStyle, GUILayout.Width(65), GUILayout.Height(20))) {
-                    mod.Enabled = !mod.Enabled;
+                // Version
+                GUILayout.Label(mod.Version, GUILayout.Width(75));
+
+                // Toggle switch (Overlayer v3 style)
+                bool enabled = mod.Enabled;
+                if (Drawer.DrawOnlyBool(ref enabled)) {
+                    mod.Enabled = enabled;
                     try {
                         mod.OnToggle?.Invoke(mod.Enabled);
                     } catch (Exception ex) {
                         Debug.LogError($"[ModMenu] Error toggling {mod.Id}: {ex}");
                     }
                 }
+                Drawer.HoverTooltip(mod.Enabled ? "Mod is Enabled (click to disable)" : "Mod is Disabled (click to enable)");
 
-                string expandText = isExpanded ? "▼ Hide" : "► Edit";
+                GUILayout.Space(4);
+
+                // Settings edit button
                 if (mod.OnGUI is not null) {
-                    if (GUILayout.Button(expandText, _btnStyle, GUILayout.Width(75), GUILayout.Height(20))) {
+                    string btnText = isExpanded ? "Hide" : "Edit";
+                    if (Drawer.Button(btnText, GUILayout.Width(75), GUILayout.Height(22))) {
                         ToggleExpand(mod.Id);
                     }
                 } else {
                     GUILayout.Label("-", GUILayout.Width(75));
                 }
 
+                // Author
                 GUILayout.Label(mod.Author, GUILayout.ExpandWidth(true));
 
                 GUILayout.EndHorizontal();
 
+                // Expanded settings GUI
                 if (isExpanded && mod.OnGUI is not null) {
-                    GUILayout.Space(4);
-                    GUILayout.BeginVertical(GUI.skin.box);
+                    GUILayout.Space(6);
+                    GUILayout.BeginVertical(Drawer.boxStyle);
                     try {
                         mod.OnGUI.Invoke();
                     } catch (Exception ex) {
@@ -254,7 +222,7 @@ namespace ModMenu {
                 }
 
                 GUILayout.EndVertical();
-                GUILayout.Space(2);
+                GUILayout.Space(3);
             }
 
             GUILayout.EndScrollView();
@@ -271,19 +239,55 @@ namespace ModMenu {
         }
 
         private void DrawSettingsTab() {
-            GUILayout.BeginVertical(_boxStyle);
-            GUILayout.Label("ModMenu Information", _headerStyle);
+            GUILayout.BeginVertical(Drawer.boxStyle);
+            GUILayout.Label("<b>ModMenu Information</b>", Drawer.headerStyle);
             GUILayout.Space(8);
-            GUILayout.Label("Shortcut: <b>Ctrl + F9</b> opens/closes this menu.");
-            GUILayout.Label("Escape key also closes this menu when open.");
-            GUILayout.Label($"Loaded Mods: {ModMenuApi.Mods.Count}");
-            GUILayout.Space(12);
+            GUILayout.Label("A lightweight compatibility layer for running UnityModManager (UMM) mods in MelonLoader.");
+            GUILayout.Space(4);
+            GUILayout.Label("• Shortcut: <b>Ctrl + F9</b> opens/closes this menu.");
+            GUILayout.Label("• Pressing <b>Escape</b> closes the menu when open.");
+            GUILayout.Label($"• Currently Registered Mods: <b>{ModMenuApi.Mods.Count}</b>");
+            GUILayout.Space(14);
 
-            if (GUILayout.Button("Reset Window Position", _btnStyle, GUILayout.Width(180))) {
+            if (Drawer.Button("Reset Window Position", GUILayout.Width(180), GUILayout.Height(26))) {
                 CenterWindow();
             }
 
             GUILayout.EndVertical();
+        }
+
+        private void DrawFooter() {
+            GUILayout.BeginHorizontal();
+
+            if (Drawer.Button("Close (Esc)", GUILayout.Width(100), GUILayout.Height(26))) {
+                IsOpen = false;
+            }
+
+            GUILayout.Space(6);
+
+            if (Drawer.Button("Save Settings", GUILayout.Width(120), GUILayout.Height(26))) {
+                SaveAllMods();
+            }
+
+            GUILayout.FlexibleSpace();
+
+            // Discord & GitHub links (Overlayer v3 style)
+            if (Drawer.Button(Drawer.Icon_Discord, " Discord", GUILayout.Height(26))) {
+                Application.OpenURL("https://discord.modlist.org/");
+            }
+            Drawer.HoverTooltip("Join the modlist.org Discord community");
+
+            GUILayout.Space(4);
+
+            if (Drawer.Button(Drawer.Icon_Github, " GitHub", GUILayout.Height(26))) {
+                Application.OpenURL("https://github.com/modlist-org/ModMenu");
+            }
+            Drawer.HoverTooltip("Open ModMenu GitHub repository");
+
+            GUILayout.Space(8);
+            GUILayout.Label("<color=#777777>Ctrl + F9</color>");
+
+            GUILayout.EndHorizontal();
         }
 
         private void SaveAllMods() {
@@ -294,14 +298,6 @@ namespace ModMenu {
                     Debug.LogError($"[ModMenu] Error saving settings for {mod.Id}: {ex}");
                 }
             }
-        }
-
-        private void OnDestroy() {
-            if (_winBgTex is not null) Destroy(_winBgTex);
-            if (_boxBgTex is not null) Destroy(_boxBgTex);
-            if (_btnBgTex is not null) Destroy(_btnBgTex);
-            if (_btnActiveBgTex is not null) Destroy(_btnActiveBgTex);
-            if (_btnInactiveBgTex is not null) Destroy(_btnInactiveBgTex);
         }
     }
 }
