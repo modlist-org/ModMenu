@@ -1,3 +1,4 @@
+using MelonLoader;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -218,10 +219,12 @@ namespace ModMenu {
                 bool enabled = mod.Enabled;
                 if (Drawer.DrawOnlyBool(ref enabled)) {
                     mod.Enabled = enabled;
+                    string name = string.IsNullOrEmpty(mod.DisplayName) ? mod.Id : mod.DisplayName;
+                    MelonLogger.Msg($"{name} {(mod.Enabled ? "Enabled" : "Disabled")}");
                     try {
                         mod.OnToggle?.Invoke(mod.Enabled);
                     } catch (Exception ex) {
-                        Debug.LogError($"[ModMenu] Error toggling {mod.Id}: {ex}");
+                        MelonLogger.Error($"Error toggling {mod.Id}: {ex}");
                     }
                 }
                 Drawer.HoverTooltip(mod.Enabled ? "Mod is Enabled (click to disable)" : "Mod is Disabled (click to enable)");
