@@ -358,21 +358,13 @@ namespace ModMenu {
                 CenterWindow();
             }
 
-            GUILayout.Space(16);
-
-            // Info
-            GUILayout.Label("<b>Information:</b>");
-            GUILayout.Space(4);
-            GUILayout.Label($"• Registered Mods: <b>{ModMenuApi.Mods.Count}</b>");
-            GUILayout.Label("• Press <b>Escape</b> to close the menu.");
-
             GUILayout.EndVertical();
         }
 
         private void DrawFooter() {
             GUILayout.BeginHorizontal();
 
-            if (Drawer.Button("Close (Esc)", GUILayout.Width(100), GUILayout.Height(26))) {
+            if (Drawer.Button("Close", GUILayout.Width(80), GUILayout.Height(26))) {
                 IsOpen = false;
             }
 
