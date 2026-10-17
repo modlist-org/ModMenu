@@ -219,6 +219,10 @@ namespace ModMenu {
                 bool enabled = mod.Enabled;
                 if (Drawer.DrawOnlyBool(ref enabled)) {
                     mod.Enabled = enabled;
+                    if (!mod.Enabled && _expandedMods.Contains(mod.Id)) {
+                        _expandedMods.Remove(mod.Id);
+                        try { mod.OnHideGUI?.Invoke(); } catch { }
+                    }
                     string name = string.IsNullOrEmpty(mod.DisplayName) ? mod.Id : mod.DisplayName;
                     MelonLogger.Msg($"{name} {(mod.Enabled ? "Enabled" : "Disabled")}");
                     try {
@@ -232,7 +236,9 @@ namespace ModMenu {
                 GUILayout.Space(8);
 
                 string nameTitle = string.IsNullOrEmpty(mod.DisplayName) ? mod.Id : mod.DisplayName;
-                if (mod.OnGUI is not null) {
+                if (!mod.Enabled) {
+                    GUILayout.Label($"<color=#777777><b>{nameTitle}</b></color>", GUI.skin.label, GUILayout.ExpandWidth(false));
+                } else if (mod.OnGUI is not null) {
                     if (GUILayout.Button($"<b>{nameTitle}</b>", GUI.skin.label, GUILayout.ExpandWidth(false))) {
                         ToggleExpand(mod.Id);
                     }
@@ -247,7 +253,7 @@ namespace ModMenu {
                     GUILayout.Space(8);
                 }
 
-                if (mod.OnGUI is not null) {
+                if (mod.OnGUI is not null && mod.Enabled) {
                     string arrow = isExpanded ? "▼" : "►";
                     if (Drawer.Button(arrow, GUILayout.Width(28), GUILayout.Height(22))) {
                         ToggleExpand(mod.Id);
@@ -259,7 +265,7 @@ namespace ModMenu {
 
                 GUILayout.EndHorizontal();
 
-                if (isExpanded && mod.OnGUI is not null) {
+                if (isExpanded && mod.Enabled && mod.OnGUI is not null) {
                     GUILayout.Space(6);
                     GUILayout.BeginVertical(Drawer.boxStyle);
                     try {
@@ -278,9 +284,15 @@ namespace ModMenu {
         }
 
         private void ToggleExpand(string id) {
+            var mod = ModMenuApi.Get(id);
+            if (mod is not null && !mod.Enabled) {
+                _expandedMods.Remove(id);
+                try { mod.OnHideGUI?.Invoke(); } catch { }
+                return;
+            }
+
             if (_expandedMods.Contains(id)) {
                 _expandedMods.Remove(id);
-                var mod = ModMenuApi.Get(id);
                 try { mod?.OnHideGUI?.Invoke(); } catch { }
             } else {
                 _expandedMods.Add(id);
