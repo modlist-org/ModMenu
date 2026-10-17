@@ -35,6 +35,7 @@ namespace ModMenu {
         public static Texture2D? dulgray;
         public static Texture2D? outlineimg;
         public static Texture2D? black;
+        public static Texture2D? dimTexture;
 
         public static Texture2D? Icon_Active;
         public static Texture2D? Icon_Inactive;
@@ -64,6 +65,7 @@ namespace ModMenu {
             tfgray = CreateColorTexture(new(0.20f, 0.20f, 0.20f, 1f));
             veryjittengray = CreateColorTexture(new(0.11f, 0.11f, 0.11f, 0.98f));
             black = CreateColorTexture(Color.black);
+            dimTexture = CreateColorTexture(new(0f, 0f, 0f, 0.65f));
 
             // Load embedded Overlayer v3 images
             outlineimg = ResourceManager.LoadTexture("RGUIoutline.png");
@@ -130,7 +132,7 @@ namespace ModMenu {
         }
 
         private static Texture2D CreateColorTexture(Color col) {
-            Texture2D tex = new(1, 1);
+            Texture2D tex = new(1, 1, TextureFormat.RGBA32, false);
             tex.SetPixel(0, 0, col);
             tex.Apply();
             return tex;

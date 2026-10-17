@@ -51,6 +51,10 @@ namespace ModMenu {
 
             Drawer.Initialize();
 
+            if (Drawer.dimTexture is not null) {
+                GUI.DrawTexture(new(0, 0, Screen.width, Screen.height), Drawer.dimTexture);
+            }
+
             _windowRect = GUILayout.Window(
                 999901,
                 _windowRect,
