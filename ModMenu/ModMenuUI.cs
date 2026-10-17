@@ -183,12 +183,9 @@ namespace ModMenu {
 
             // Table Header
             GUILayout.BeginHorizontal(Drawer.boxStyle);
-            GUILayout.Space(26);
-            GUILayout.Label("<b>Mod Name</b>", GUILayout.Width(230));
-            GUILayout.Label("<b>Version</b>", GUILayout.Width(75));
-            GUILayout.Label("<b>Status</b>", GUILayout.Width(60));
-            GUILayout.Label("<b>Settings</b>", GUILayout.Width(75));
-            GUILayout.Label("<b>Author</b>", GUILayout.ExpandWidth(true));
+            GUILayout.Space(28);
+            GUILayout.Label("<b>Mod Name</b>", GUI.skin.label);
+            GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
 
             // Mod items list
@@ -222,22 +219,7 @@ namespace ModMenu {
                 GUILayout.BeginVertical(Drawer.boxStyle);
                 GUILayout.BeginHorizontal();
 
-                // Expand button
-                string arrow = isExpanded ? "▼" : "►";
-                if (Drawer.Button(arrow, GUILayout.Width(24), GUILayout.Height(22))) {
-                    ToggleExpand(mod.Id);
-                }
-
-                // Name
-                string nameTitle = string.IsNullOrEmpty(mod.DisplayName) ? mod.Id : mod.DisplayName;
-                if (GUILayout.Button($"<b>{nameTitle}</b>", GUI.skin.label, GUILayout.Width(230))) {
-                    ToggleExpand(mod.Id);
-                }
-
-                // Version
-                GUILayout.Label(mod.Version, GUILayout.Width(75));
-
-                // Toggle switch (Overlayer v3 style)
+                // 1. Far Left: Toggle switch
                 bool enabled = mod.Enabled;
                 if (Drawer.DrawOnlyBool(ref enabled)) {
                     mod.Enabled = enabled;
@@ -249,20 +231,36 @@ namespace ModMenu {
                 }
                 Drawer.HoverTooltip(mod.Enabled ? "Mod is Enabled (click to disable)" : "Mod is Disabled (click to enable)");
 
-                GUILayout.Space(4);
+                GUILayout.Space(8);
 
-                // Settings edit button
+                // 2. Mod Name
+                string nameTitle = string.IsNullOrEmpty(mod.DisplayName) ? mod.Id : mod.DisplayName;
                 if (mod.OnGUI is not null) {
-                    string btnText = isExpanded ? "Hide" : "Edit";
-                    if (Drawer.Button(btnText, GUILayout.Width(75), GUILayout.Height(22))) {
+                    if (GUILayout.Button($"<b>{nameTitle}</b>", GUI.skin.label, GUILayout.ExpandWidth(false))) {
                         ToggleExpand(mod.Id);
                     }
                 } else {
-                    GUILayout.Label("-", GUILayout.Width(75));
+                    GUILayout.Label($"<b>{nameTitle}</b>", GUI.skin.label, GUILayout.ExpandWidth(false));
                 }
 
-                // Author
-                GUILayout.Label(mod.Author, GUILayout.ExpandWidth(true));
+                GUILayout.FlexibleSpace();
+
+                // 3. Version (left of expander)
+                if (!string.IsNullOrEmpty(mod.Version)) {
+                    GUILayout.Label($"<color=#aaaaaa>{mod.Version}</color>", GUI.skin.label, GUILayout.ExpandWidth(false));
+                    GUILayout.Space(8);
+                }
+
+                // 4. Far Right: Expander
+                if (mod.OnGUI is not null) {
+                    string arrow = isExpanded ? "▼" : "►";
+                    if (Drawer.Button(arrow, GUILayout.Width(28), GUILayout.Height(22))) {
+                        ToggleExpand(mod.Id);
+                    }
+                    Drawer.HoverTooltip(isExpanded ? "Close settings" : "Open settings");
+                } else {
+                    GUILayout.Space(28);
+                }
 
                 GUILayout.EndHorizontal();
 
