@@ -1,0 +1,9 @@
+<Project>
+    <PropertyGroup>
+        <GamePath Condition="'$(GamePath)' == '' and Exists('/home/kkitut/.local/share/Steam/steamapps/common/A Dance of Fire and Ice')">/home/kkitut/.local/share/Steam/steamapps/common/A Dance of Fire and Ice</GamePath>
+        <GamePath Condition="'$(GamePath)' == '' and Exists('D:\steam\steamapps\common\A Dance of Fire and Ice')">D:\steam\steamapps\common\A Dance of Fire and Ice</GamePath>
+        <GamePath Condition="'$(GamePath)' == ''">/home/kkitut/.local/share/Steam/steamapps/common/A Dance of Fire and Ice</GamePath>
+        <GameData Condition="'$(GameData)' == ''">ADanceOfFireAndIce_Data</GameData>
+        <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
+    </PropertyGroup>
+</Project>

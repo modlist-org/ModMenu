@@ -1,0 +1,10 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug_ML" />
+    <BuildType Name="Release_ML" />
+  </Configurations>
+  <Project Path="ModMenu/ModMenu.csproj">
+    <BuildType Solution="Debug_ML|*" Project="Debug_ML" />
+    <BuildType Solution="Release_ML|*" Project="Release_ML" />
+  </Project>
+</Solution>
