@@ -1,7 +1,7 @@
 using MelonLoader;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(ModMenu.ModMenuPlugin), "ModMenu", "1.0.0", "modlist.org")]
+[assembly: MelonInfo(typeof(ModMenu.ModMenuPlugin), "ModMenu", "1.1.0", "modlist.org")]
 
 namespace ModMenu {
     public class ModMenuPlugin : MelonPlugin {
