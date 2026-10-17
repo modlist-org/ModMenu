@@ -143,7 +143,6 @@ namespace ModMenu {
 
             DrawFooter();
 
-            // Drag window from title area only (leaves tabs clickable on the right)
             GUI.DragWindow(new(0, 0, Mathf.Max(0, _windowRect.width - 220), 45));
         }
 
@@ -165,7 +164,6 @@ namespace ModMenu {
         }
 
         private void DrawModsTab() {
-            // Search / Filter bar
             GUILayout.BeginHorizontal();
             GUILayout.Label("Filter:", GUILayout.ExpandWidth(false));
             _filter = GUILayout.TextField(_filter, Drawer.myTextField, GUILayout.Width(180));
@@ -181,14 +179,12 @@ namespace ModMenu {
 
             GUILayout.Space(6);
 
-            // Table Header
             GUILayout.BeginHorizontal(Drawer.boxStyle);
             GUILayout.Space(28);
             GUILayout.Label("<b>Mod Name</b>", GUI.skin.label);
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
 
-            // Mod items list
             var mods = ModMenuApi.Mods;
             _scrollPos = GUILayout.BeginScrollView(
                 _scrollPos,
@@ -219,7 +215,6 @@ namespace ModMenu {
                 GUILayout.BeginVertical(Drawer.boxStyle);
                 GUILayout.BeginHorizontal();
 
-                // 1. Far Left: Toggle switch
                 bool enabled = mod.Enabled;
                 if (Drawer.DrawOnlyBool(ref enabled)) {
                     mod.Enabled = enabled;
@@ -233,7 +228,6 @@ namespace ModMenu {
 
                 GUILayout.Space(8);
 
-                // 2. Mod Name
                 string nameTitle = string.IsNullOrEmpty(mod.DisplayName) ? mod.Id : mod.DisplayName;
                 if (mod.OnGUI is not null) {
                     if (GUILayout.Button($"<b>{nameTitle}</b>", GUI.skin.label, GUILayout.ExpandWidth(false))) {
@@ -245,13 +239,11 @@ namespace ModMenu {
 
                 GUILayout.FlexibleSpace();
 
-                // 3. Version (left of expander)
                 if (!string.IsNullOrEmpty(mod.Version)) {
                     GUILayout.Label($"<color=#aaaaaa>{mod.Version}</color>", GUI.skin.label, GUILayout.ExpandWidth(false));
                     GUILayout.Space(8);
                 }
 
-                // 4. Far Right: Expander
                 if (mod.OnGUI is not null) {
                     string arrow = isExpanded ? "▼" : "►";
                     if (Drawer.Button(arrow, GUILayout.Width(28), GUILayout.Height(22))) {
@@ -264,7 +256,6 @@ namespace ModMenu {
 
                 GUILayout.EndHorizontal();
 
-                // Expanded settings GUI
                 if (isExpanded && mod.OnGUI is not null) {
                     GUILayout.Space(6);
                     GUILayout.BeginVertical(Drawer.boxStyle);
@@ -299,7 +290,6 @@ namespace ModMenu {
             GUILayout.Label("<b>Menu Settings</b>", Drawer.headerStyle);
             GUILayout.Space(10);
 
-            // Toggle Hotkey section
             GUILayout.Label("<b>Toggle Menu Shortcut:</b>");
             GUILayout.Space(4);
 
@@ -349,7 +339,6 @@ namespace ModMenu {
 
             GUILayout.Space(16);
 
-            // Window position
             GUILayout.Label("<b>Window:</b>");
             GUILayout.Space(4);
             if (Drawer.Button("Reset Window Position", GUILayout.Width(180), GUILayout.Height(28))) {

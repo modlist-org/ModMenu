@@ -63,7 +63,6 @@ namespace ModMenu {
         public static void Initialize() {
             if (_isInited) return;
 
-            // Generate solid color textures (Overlayer v3 color palette)
             dulgray = CreateColorTexture(new(0.40f, 0.40f, 0.40f, 1f));
             gray = CreateColorTexture(new(0.30f, 0.30f, 0.30f, 1f));
             jittengray = CreateColorTexture(new(0.15f, 0.15f, 0.15f, 0.95f));
@@ -72,7 +71,6 @@ namespace ModMenu {
             black = CreateColorTexture(Color.black);
             dimTexture = CreateColorTexture(new(0f, 0f, 0f, 0.65f));
 
-            // Load embedded Overlayer v3 images
             outlineimg = ResourceManager.LoadTexture("RGUIoutline.png");
             if (outlineimg is not null) outlineimg.filterMode = FilterMode.Point;
 
@@ -80,7 +78,6 @@ namespace ModMenu {
             Icon_Inactive = ResourceManager.LoadTexture("inactive.png");
             Icon_X = ResourceManager.LoadTexture("x.png");
 
-            // Scrollbar textures and styles (dark flat theme)
             scrollTrack = CreateColorTexture(new(0.08f, 0.08f, 0.08f, 0.7f));
             scrollThumb = CreateColorTexture(new(0.32f, 0.32f, 0.32f, 0.9f));
             scrollThumbHover = CreateColorTexture(new(0.48f, 0.48f, 0.48f, 1f));
@@ -98,7 +95,6 @@ namespace ModMenu {
                 fixedWidth = 8
             };
 
-            // Overlayer v3 custom styles
             myButton = new(GUI.skin.button) {
                 normal = { background = gray, textColor = Color.white },
                 hover = { background = dulgray, textColor = Color.yellow },
