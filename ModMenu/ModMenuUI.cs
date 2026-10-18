@@ -11,15 +11,65 @@ namespace ModMenu {
         public bool RequireCtrl = true;
         public bool RequireAlt = false;
         public bool RequireShift = false;
+        public List<string> DisabledMods = new();
     }
 
     public class ModMenuUI : MonoBehaviour {
         public static ModMenuUI? Instance { get; private set; }
         public static bool IsOpen { get; private set; }
 
-        private ModMenuSettings _settings = new();
+        private static ModMenuSettings _settings = new();
+        private static bool _settingsLoaded = false;
+
+        public static ModMenuSettings Settings {
+            get {
+                EnsureSettingsLoaded();
+                return _settings;
+            }
+        }
+
+        public static void EnsureSettingsLoaded() {
+            if (!_settingsLoaded) {
+                LoadSettings();
+            }
+        }
+
+        public static bool IsModDisabled(string id) {
+            if (string.IsNullOrEmpty(id)) return false;
+            EnsureSettingsLoaded();
+            return _settings.DisabledMods != null && _settings.DisabledMods.Contains(id);
+        }
+
+        public static void SetModDisabled(string id, bool disabled) {
+            if (string.IsNullOrEmpty(id)) return;
+            EnsureSettingsLoaded();
+            _settings.DisabledMods ??= new();
+            if (disabled) {
+                if (!_settings.DisabledMods.Contains(id)) {
+                    _settings.DisabledMods.Add(id);
+                    SaveSettings();
+                }
+            } else {
+                if (_settings.DisabledMods.Remove(id)) {
+                    SaveSettings();
+                }
+            }
+        }
+
+        [Flags]
+        private enum ResizeEdge {
+            None = 0,
+            Left = 1,
+            Right = 2,
+            Top = 4,
+            Bottom = 8
+        }
+
         private bool _isBindingKey = false;
         private Rect _windowRect = new(100, 100, 850, 620);
+        private ResizeEdge _activeResize = ResizeEdge.None;
+        private Vector2 _resizeStartMouse;
+        private Rect _resizeStartRect;
         private Vector2 _scrollPos = Vector2.zero;
         private string _filter = string.Empty;
         private int _tabId = 0;
@@ -31,6 +81,8 @@ namespace ModMenu {
             DontDestroyOnLoad(gameObject);
             LoadSettings();
             CenterWindow();
+            SelfCheckDisabledMods();
+            SelfCheckResize();
         }
 
         private void CenterWindow() {
@@ -41,6 +93,9 @@ namespace ModMenu {
 
         public static void Toggle() {
             IsOpen = !IsOpen;
+            if (!IsOpen && Instance is not null) {
+                Instance._activeResize = ResizeEdge.None;
+            }
         }
 
         public string GetShortcutString() {
@@ -68,12 +123,99 @@ namespace ModMenu {
 
             if (IsOpen && Input.GetKeyDown(KeyCode.Escape)) {
                 IsOpen = false;
+                _activeResize = ResizeEdge.None;
             }
 
             if (IsOpen) {
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
+        }
+
+        // shortcut: in-memory window resize without custom cursor icon, upgrade if OS cursor skins or ModMenu.json size persistence needed
+        private void HandleWindowResize() {
+            if (_isBindingKey) return;
+
+            Event e = Event.current;
+
+            if (_activeResize != ResizeEdge.None) {
+                if (e.rawType == EventType.MouseUp || !Input.GetMouseButton(0)) {
+                    _activeResize = ResizeEdge.None;
+                } else {
+                    float dx = e.mousePosition.x - _resizeStartMouse.x;
+                    float dy = e.mousePosition.y - _resizeStartMouse.y;
+
+                    float minW = Mathf.Min(480f, Screen.width);
+                    float minH = Mathf.Min(320f, Screen.height);
+
+                    if ((_activeResize & ResizeEdge.Left) != 0) {
+                        float right = _resizeStartRect.xMax;
+                        float newX = Mathf.Clamp(_resizeStartRect.x + dx, 0, Mathf.Max(0, right - minW));
+                        _windowRect.x = newX;
+                        _windowRect.width = right - newX;
+                    } else if ((_activeResize & ResizeEdge.Right) != 0) {
+                        _windowRect.width = Mathf.Clamp(_resizeStartRect.width + dx, minW, Mathf.Max(minW, Screen.width - _resizeStartRect.x));
+                    }
+
+                    if ((_activeResize & ResizeEdge.Top) != 0) {
+                        float bottom = _resizeStartRect.yMax;
+                        float newY = Mathf.Clamp(_resizeStartRect.y + dy, 0, Mathf.Max(0, bottom - minH));
+                        _windowRect.y = newY;
+                        _windowRect.height = bottom - newY;
+                    } else if ((_activeResize & ResizeEdge.Bottom) != 0) {
+                        _windowRect.height = Mathf.Clamp(_resizeStartRect.height + dy, minH, Mathf.Max(minH, Screen.height - _resizeStartRect.y));
+                    }
+
+                    if (e.type == EventType.MouseDrag || e.type == EventType.MouseDown) {
+                        e.Use();
+                    }
+                }
+            } else if (e.type == EventType.MouseDown && e.button == 0) {
+                var edge = GetResizeEdge(e.mousePosition);
+                if (edge != ResizeEdge.None) {
+                    _activeResize = edge;
+                    _resizeStartMouse = e.mousePosition;
+                    _resizeStartRect = _windowRect;
+                    e.Use();
+                }
+            }
+        }
+
+        private ResizeEdge GetResizeEdge(Vector2 mousePos) {
+            const float border = 6f;
+            const float corner = 20f;
+
+            if (mousePos.x < _windowRect.x - border || mousePos.x > _windowRect.xMax + border ||
+                mousePos.y < _windowRect.y - border || mousePos.y > _windowRect.yMax + border) {
+                return ResizeEdge.None;
+            }
+
+            bool onLeft = mousePos.x <= _windowRect.x + border;
+            bool onRight = mousePos.x >= _windowRect.xMax - border;
+            bool onTop = mousePos.y <= _windowRect.y + border;
+            bool onBottom = mousePos.y >= _windowRect.yMax - border;
+
+            if (!onLeft && !onRight && !onTop && !onBottom) return ResizeEdge.None;
+
+            ResizeEdge edge = ResizeEdge.None;
+            if (onLeft || ((onTop || onBottom) && mousePos.x <= _windowRect.x + corner)) edge |= ResizeEdge.Left;
+            if (onRight || ((onTop || onBottom) && mousePos.x >= _windowRect.xMax - corner)) edge |= ResizeEdge.Right;
+            if (onTop || ((onLeft || onRight) && mousePos.y <= _windowRect.y + corner)) edge |= ResizeEdge.Top;
+            if (onBottom || ((onLeft || onRight) && mousePos.y >= _windowRect.yMax - corner)) edge |= ResizeEdge.Bottom;
+
+            return edge;
+        }
+
+        [System.Diagnostics.Conditional("DEBUG")]
+        private void SelfCheckResize() {
+            var prev = _windowRect;
+            _windowRect = new(100, 100, 800, 600);
+            System.Diagnostics.Debug.Assert(GetResizeEdge(new(500, 400)) == ResizeEdge.None);
+            System.Diagnostics.Debug.Assert(GetResizeEdge(new(102, 102)) == (ResizeEdge.Left | ResizeEdge.Top));
+            System.Diagnostics.Debug.Assert(GetResizeEdge(new(500, 102)) == ResizeEdge.Top);
+            System.Diagnostics.Debug.Assert(GetResizeEdge(new(898, 400)) == ResizeEdge.Right);
+            System.Diagnostics.Debug.Assert(GetResizeEdge(new(500, 698)) == ResizeEdge.Bottom);
+            _windowRect = prev;
         }
 
         private void OnGUI() {
@@ -101,6 +243,8 @@ namespace ModMenu {
                     }
                 }
             }
+
+            HandleWindowResize();
 
             if (Drawer.dimTexture is not null) {
                 GUI.DrawTexture(new(0, 0, Screen.width, Screen.height), Drawer.dimTexture);
@@ -144,7 +288,7 @@ namespace ModMenu {
 
             DrawFooter();
 
-            GUI.DragWindow(new(0, 0, Mathf.Max(0, _windowRect.width - 220), 45));
+            GUI.DragWindow(new(6, 6, Mathf.Max(0, _windowRect.width - 226), 39));
         }
 
         private void DrawHeader() {
@@ -219,6 +363,7 @@ namespace ModMenu {
                 bool enabled = mod.Enabled;
                 if (Drawer.DrawOnlyBool(ref enabled)) {
                     mod.Enabled = enabled;
+                    SetModDisabled(mod.Id, !mod.Enabled);
                     if (!mod.Enabled && _expandedMods.Contains(mod.Id)) {
                         _expandedMods.Remove(mod.Id);
                         try { mod.OnHideGUI?.Invoke(); } catch { }
@@ -368,6 +513,7 @@ namespace ModMenu {
 
             if (Drawer.Button("Close", GUILayout.Width(80), GUILayout.Height(26))) {
                 IsOpen = false;
+                _activeResize = ResizeEdge.None;
             }
 
             GUILayout.Space(6);
@@ -384,7 +530,7 @@ namespace ModMenu {
             GUILayout.EndHorizontal();
         }
 
-        private void LoadSettings() {
+        public static void LoadSettings() {
             try {
                 string dir = Path.Combine(Directory.GetCurrentDirectory(), "UserData");
                 string file = Path.Combine(dir, "ModMenu.json");
@@ -395,23 +541,39 @@ namespace ModMenu {
                         _settings = loaded;
                     }
                 }
+                _settings.DisabledMods ??= new();
+                _settingsLoaded = true;
             } catch (Exception ex) {
                 Debug.LogWarning($"[ModMenu] Failed to load settings: {ex.Message}");
+                _settings.DisabledMods ??= new();
+                _settingsLoaded = true;
             }
         }
 
-        private void SaveSettings() {
+        public static void SaveSettings() {
             try {
                 string dir = Path.Combine(Directory.GetCurrentDirectory(), "UserData");
                 if (!Directory.Exists(dir)) {
                     Directory.CreateDirectory(dir);
                 }
                 string file = Path.Combine(dir, "ModMenu.json");
+                _settings.DisabledMods ??= new();
                 string json = JsonUtility.ToJson(_settings, true);
                 File.WriteAllText(file, json);
             } catch (Exception ex) {
                 Debug.LogWarning($"[ModMenu] Failed to save settings: {ex.Message}");
             }
+        }
+
+        [System.Diagnostics.Conditional("DEBUG")]
+        private void SelfCheckDisabledMods() {
+            _settings.DisabledMods ??= new();
+            bool wasDisabled = IsModDisabled("__test_mod__");
+            SetModDisabled("__test_mod__", true);
+            System.Diagnostics.Debug.Assert(IsModDisabled("__test_mod__"));
+            SetModDisabled("__test_mod__", false);
+            System.Diagnostics.Debug.Assert(!IsModDisabled("__test_mod__"));
+            if (wasDisabled) SetModDisabled("__test_mod__", true);
         }
 
         private void SaveAllMods() {

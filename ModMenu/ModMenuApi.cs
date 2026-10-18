@@ -27,10 +27,25 @@ namespace ModMenu {
             }
         }
 
+        public static bool IsModEnabled(string id) {
+            if (string.IsNullOrEmpty(id)) return true;
+            return !ModMenuUI.IsModDisabled(id);
+        }
+
         public static void Register(ModEntry entry) {
             if (entry is null || string.IsNullOrEmpty(entry.Id)) return;
             lock (_lock) {
                 _mods.RemoveAll(m => m.Id == entry.Id);
+
+                if (ModMenuUI.IsModDisabled(entry.Id)) {
+                    entry.Enabled = false;
+                    try {
+                        entry.OnToggle?.Invoke(false);
+                    } catch (Exception ex) {
+                        MelonLoader.MelonLogger.Error($"[ModMenu] Error applying disabled state to {entry.Id}: {ex}");
+                    }
+                }
+
                 _mods.Add(entry);
             }
         }
